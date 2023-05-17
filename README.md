@@ -2,7 +2,7 @@
 
 Experimental code on multi-label dialect identification, developed for a paper entitled "Dialect and Variant Identification as a Multi-Label Classification Task: A Proposal Based on Near-Duplicate Analysis" (Bernier-Colborne, Goutte, and Léger; VarDial 2023).
 
-We provide this code for the purpose of reproducing the experiments we conducted on the [FreCDo](https://github.com/MihaelaGaman/FreCDo) dataset. It is licensed under GPL 2.0, as it uses a library licensed under GPL 2.0.
+We provide this code for the purpose of reproducing the experiments we conducted on the [FreCDo](https://github.com/MihaelaGaman/FreCDo) dataset. It is licensed under GPL 3.0, as it uses a library licensed under a previous version of GPL.
 
 ## Requirements
 
