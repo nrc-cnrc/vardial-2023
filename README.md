@@ -12,11 +12,10 @@ The scripts below require [Python](https://www.python.org/) (tested with version
 - [SciPy](https://scipy.org/) (v 1.10.0)
 - [scikit-learn](https://scikit-learn.org/stable/) (v 1.2.1)
 - [PyTorch](https://pytorch.org/) (v 1.12.0)
-- [Transformers](https://huggingface.co/docs/transformers/index) (v 4.20.1) 
+- [Transformers](https://huggingface.co/docs/transformers/index) (v 4.20.1)
 - [Datasets](https://huggingface.co/docs/datasets/index) (v 2.3.2)
 - [Levenshtein](https://github.com/maxbachmann/Levenshtein) (v 0.20.9)
 - [tqdm](https://github.com/tqdm/tqdm) (v 4.64.0)
-
 
 ## Usage
 
@@ -24,12 +23,12 @@ The following commands assume that the text files containing the data are split 
 
 ```bash
 data/
-	train.txt
-	train.labels
-	dev.txt
-	dev.labels
-	test.txt
-	test.labels
+    train.txt
+    train.labels
+    dev.txt
+    dev.labels
+    test.txt
+    test.labels
 ```
 
 This is the format produced by `make_dataset.py` (see below), but if you want to apply these commands to the original version of the FreCDo dataset, you will have to split the train and dev sets into separate files for texts and labels.
@@ -47,7 +46,7 @@ To analyse near-duplicates in the data using the Levenshtein edit ratio as simil
 
 ```bash
 python make_sim_matrix.py data.txt sim.pkl -c 0.8 -b 1024 -p loky
-python count_near_dups.py sim.pkl data.txt data.labels -m 0.8 -w log.txt -n token 
+python count_near_dups.py sim.pkl data.txt data.labels -m 0.8 -w log.txt -n token
 ```
 
 where `sim.pkl` will contain the result of the first command.
@@ -77,3 +76,11 @@ python evaluate.py pred.labels test.labels multi
 ```
 
 where `pred.labels` will contain the predicted labels output by the first command.
+
+## Copyright
+
+All files in this repository are **Copyright (C) 2023 National Research Council Canada.**
+
+## Licence
+
+This software is licensed under [GPL version 3](./LICENSE). It relies on the [Levenshtein library](https://github.com/maxbachmann/Levenshtein/tree/main), which is licensed under GPL version 2 (or any later version). Licence compatibility of all python dependencies has been confirmed with [licensecheck 2023.1.3](https://pypi.org/project/licensecheck/2023.1.3/).
