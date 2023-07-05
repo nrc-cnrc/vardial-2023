@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse
 import numpy as np
 import torch
@@ -27,7 +44,7 @@ def main(args):
     nb_examples = len(data['text'])
     label_list = CLASS_NAMES
     label2id = {x:i for i,x in enumerate(label_list)}
-    label2id = {i:x for i,x in enumerate(label_list)}    
+    label2id = {i:x for i,x in enumerate(label_list)}
 
     # Load model
     model = AutoModelForSequenceClassification.from_pretrained(args.path_checkpoint)
@@ -38,7 +55,7 @@ def main(args):
     else:
         msg = f"Unrecognized problem type '{model.config.problem_type}'"
         raise RuntimeError(msg)
-    
+
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(args.path_tokenizer)
 

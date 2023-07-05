@@ -1,10 +1,27 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse
 from collections import Counter
 from itertools import combinations
 from utils import load_lines
 
 DOC="""
-Count exact duplicates in dataset. 
+Count exact duplicates in dataset.
 """
 
 def count_dups(texts, labels):
@@ -24,7 +41,7 @@ def count_dups(texts, labels):
     print("\n------------------------")
     print(f"\nNb classes: {len(label_set)}")
     for label in label_set:
-        print(f"  - {label} (n={label_fd[label]})") 
+        print(f"  - {label} (n={label_fd[label]})")
     print("\n------------------------")
 
     # Show distribution of # labels/text
@@ -36,22 +53,22 @@ def count_dups(texts, labels):
         fd_labels_per_text[len(labels)] += 1
         if len(set(labels)) not in fd_uniq_labels_per_text:
             fd_uniq_labels_per_text[len(set(labels))] = 0
-        fd_uniq_labels_per_text[len(set(labels))] += 1                
+        fd_uniq_labels_per_text[len(set(labels))] += 1
     print(f"\nDistribution of # labels per unique text:")
     for count in sorted(fd_labels_per_text.keys()):
         print(f"{count}: {fd_labels_per_text[count]}")
     print(f"\nDistribution of # unique labels per unique text:")
     for count in sorted(fd_uniq_labels_per_text.keys()):
         print(f"{count}: {fd_uniq_labels_per_text[count]}")
-    print("\n------------------------")    
-    
+    print("\n------------------------")
+
     # Show class-wise stats
     class2texts = {}
     class2texts['ALL'] = texts
     for (text, label) in data:
         if label not in class2texts:
             class2texts[label] = []
-        class2texts[label].append(text)    
+        class2texts[label].append(text)
     for label in (label_set + ["ALL"]):
         texts = class2texts[label]
         print(f"\nStats for class '{label}':")
@@ -76,10 +93,10 @@ def count_dups(texts, labels):
                         uclasscount_fd[classcount] = 0
                     uclasscount_fd[classcount] += 1
             print(f"- Nb texts that have a duplicate in any class: {nb_dups}/{len(data)}")
-            print(f"- Nb unique texts that have a duplicate in any class: {unb_dups}/{len(text_to_labels)}")            
+            print(f"- Nb unique texts that have a duplicate in any class: {unb_dups}/{len(text_to_labels)}")
             for classcount in sorted(classcount_fd.keys()):
                 freq = classcount_fd[classcount]
-                ufreq = uclasscount_fd[classcount]                
+                ufreq = uclasscount_fd[classcount]
                 print(f"- Nb texts that have duplicates within {classcount} class(es): {freq}/{len(data)}")
                 print(f"- Nb unique texts that have duplicates within {classcount} class(es): {ufreq}/{len(text_to_labels)}")
         else:
@@ -104,10 +121,10 @@ def count_dups(texts, labels):
                     udupcount_anyclass += 1
             print(f"- Nb texts that have a duplicate within this class: {dupcount_inclass}/{len(texts)}")
             print(f"- Nb texts that have a duplicate in another class: {dupcount_outclass}/{len(texts)}")
-            print(f"- Nb texts that have a duplicate in any class: {dupcount_anyclass}/{len(texts)}")        
+            print(f"- Nb texts that have a duplicate in any class: {dupcount_anyclass}/{len(texts)}")
             print(f"- Nb unique texts that have a duplicate within this class: {udupcount_inclass}/{len(set(texts))}")
             print(f"- Nb unique texts that have a duplicate in another class: {udupcount_outclass}/{len(set(texts))}")
-            print(f"- Nb unique texts that have a duplicate in any class: {udupcount_anyclass}/{len(set(texts))}")        
+            print(f"- Nb unique texts that have a duplicate in any class: {udupcount_anyclass}/{len(set(texts))}")
     print("\n------------------------\n")
 
     # Show most frequently confused label pairs
@@ -124,7 +141,7 @@ def count_dups(texts, labels):
         x, y = pair
         print(f"{x} {y}: {pair_to_count[pair]}")
 
-    print("\n------------------------\n")    
+    print("\n------------------------\n")
     return
 
 def main(args):

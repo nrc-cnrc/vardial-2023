@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse
 from shutil import copyfile
 import numpy as np
@@ -34,7 +51,7 @@ def main(args):
             labels_matrix[:,idx] = labels_batch[label]
         encoding["labels"] = labels_matrix.tolist()
         return encoding
-            
+
     # Check if labels are binary or real (soft)
     soft_labels = False
     with open(args.path_train_labels) as f:
@@ -48,20 +65,20 @@ def main(args):
                 soft_labels=True
     mode = "multi-soft" if soft_labels else "multi"
     assert mode == MODE
-    
+
     # Get data
     train_pre = load_labelled_data(args.path_train_texts,
                                    args.path_train_labels,
                                    MODE)
     dev_pre = load_labelled_data(args.path_dev_texts,
                                  args.path_dev_labels,
-                                 MODE)                                  
+                                 MODE)
     label_list = CLASS_NAMES
-    label2id = {x:i for i,x in enumerate(label_list)}    
+    label2id = {x:i for i,x in enumerate(label_list)}
     id2label = {i:x for i,x in enumerate(label_list)}
-    
+
     # Make model
-    cache_dir = os.getenv("TRANSFORMERS_CACHE")    
+    cache_dir = os.getenv("TRANSFORMERS_CACHE")
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME,
                                                                problem_type="multi_label_classification",
                                                                num_labels=len(label2id),
@@ -84,7 +101,7 @@ def main(args):
     print("Model parameters:")
     for name, param in model.named_parameters():
         print(f"- {name} (requires_grad={param.requires_grad})")
-        
+
     # Make tokenizer. Try using local cached version. This does not
     # seem to work unless the local_files_only flag is set to True.
     try:
@@ -97,7 +114,7 @@ def main(args):
                                                   cache_dir=cache_dir,
                                                   config=model.config)
     path_checkpoint = os.path.join(args.dir_out, "checkpoint")
-    tokenizer.save_pretrained(os.path.join(path_checkpoint, "tokenizer"))        
+    tokenizer.save_pretrained(os.path.join(path_checkpoint, "tokenizer"))
 
     # Tokenize data, format for pytorch native training loop. Note: I
     # only use a single CPU process because using more than one messes
@@ -115,7 +132,7 @@ def main(args):
     )
     train_loader = DataLoader(train_data, shuffle=True, batch_size=args.batch_size, collate_fn=collator)
     dev_loader = DataLoader(dev_data, shuffle=False, batch_size=args.batch_size, collate_fn=collator)
-    
+
     # Get optimizer
     optimizer = AdamW(model.parameters(), lr=5e-5)
     nb_steps = args.epochs * len(train_loader)
@@ -136,7 +153,7 @@ def main(args):
     path_dev_preds = os.path.join(args.dir_out, "dev_preds_latest.tsv")
     train_progress = tqdm(range(nb_steps), desc="TrainSteps")
     valid_progress = tqdm(range(len(dev_loader)), leave=False, desc="ValidSteps")
-    sigmoid = Sigmoid()        
+    sigmoid = Sigmoid()
     for epoch in range(args.epochs+1):
         # Skip to validation if we just started
         if epoch > 0:
@@ -158,10 +175,10 @@ def main(args):
             avg_train_loss = average_weighted_averages(train_losses, train_batch_sizes)
         else:
             avg_train_loss = "N/A"
-            
+
         # Save checkpoint
         model.save_pretrained(os.path.join(path_checkpoint, "latest_model"))
-        
+
         # Validate
         model.eval()
         valid_progress.reset()
@@ -175,7 +192,7 @@ def main(args):
                 outputs = model(**batch)
                 logits = outputs.logits
                 model_loss = outputs.loss
-            all_labels.append(batch["labels"].cpu().detach())                
+            all_labels.append(batch["labels"].cpu().detach())
             all_logits.append(logits.cpu().detach())
             valid_losses.append(model_loss.item())
             valid_batch_sizes.append(len(batch["input_ids"]))
@@ -207,7 +224,7 @@ def main(args):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=DOC)
     p.add_argument("path_train_texts", help="Path of text file containing training texts (one per line)")
-    p.add_argument("path_train_labels", help="Path of text file containing training labels (one per line)")    
+    p.add_argument("path_train_labels", help="Path of text file containing training labels (one per line)")
     p.add_argument("path_dev_texts", help="Path of text file containing dev texts (one per line)")
     p.add_argument("path_dev_labels", help="Path of text file containing dev labels (one per line)")
     p.add_argument("dir_out", help="Path of output directory")

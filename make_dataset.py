@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse, random, logging, pickle
 from collections import Counter
 from copy import copy, deepcopy
@@ -6,8 +23,8 @@ from scipy.sparse import tril, find
 from tqdm import tqdm
 from utils import load_lines
 
-DOC=""" 
-Create datasets for single-label and multi-label classification, with random split. 
+DOC="""
+Create datasets for single-label and multi-label classification, with random split.
 """
 
 MAX_NE_PROP = 0.5
@@ -27,25 +44,25 @@ def write_data(texts, text_to_labels, class_names, to_dir, part_name, mode):
     assert part_name in ["train", "dev", "test"]
     assert mode in ["single", "single-no-in-class-dups", "multi", "multi-soft"]
     if not os.path.exists(to_dir):
-        os.makedirs(to_dir)            
+        os.makedirs(to_dir)
     pairs = []
     for text in texts:
         if mode == "single":
-            # Write as single-label with duplicates both within and across classes                        
+            # Write as single-label with duplicates both within and across classes
             for class_ix, freq in enumerate(text_to_labels[text]):
                 if freq > 0:
                     pairs += [(text, class_names[class_ix])] * freq
         elif mode == "single-no-in-class-dups":
-            # Write as single-label with duplicates across classes only            
+            # Write as single-label with duplicates across classes only
             for class_ix, freq in enumerate(text_to_labels[text]):
                 if freq > 0:
                     pairs.append((text, class_names[class_ix]))
         elif mode == "multi":
-            # Write as multi-label with binary labels            
+            # Write as multi-label with binary labels
             y = [class_names[i] for i in np.where(text_to_labels[text] > 0)[0]]
             pairs.append((text, " ".join(y)))
         elif mode == "multi-soft":
-            # Write as multi-label with real labels based on relative class frequency                                    
+            # Write as multi-label with real labels based on relative class frequency
             N = text_to_labels[text].sum()
             label_fd = text_to_labels[text] / N
             y = []
@@ -81,14 +98,14 @@ def main(args):
     assert len(texts) == len(labels)
     logger.info(f"Nb texts: {len(set(texts))}")
     nb_uniq_texts = len(set(texts))
-    logger.info(f"Nb unique texts: {nb_uniq_texts}")        
+    logger.info(f"Nb unique texts: {nb_uniq_texts}")
     logger.info(f"Loading similarity matrix from {args.path_pickle}...")
     with open(args.path_pickle, 'rb') as f:
         data = pickle.load(f)
         mat = data["matrix"]
         mat_labels = data["labels"]
     logger.info(f"Type of matrix: {type(mat)}")
-    logger.info(f"Shape of matrix: {mat.shape}")    
+    logger.info(f"Shape of matrix: {mat.shape}")
     logger.info(f"Nb nnz: {mat.nnz}")
 
     # Map texts to labels
@@ -96,14 +113,14 @@ def main(args):
     class2id = {x:i for i,x in enumerate(classes)}
     for text, label in zip(texts, labels):
         text_to_labels[text][class2id[label]] += 1
-        
+
     # Combine the labels of duplicates and near duplicates that have
     # more than one unique label (but keep the original label distribution too)
     logger.info(f"Identifying near duplicates with sim>={args.min_sim}...")
     mat = tril(mat, k=1, format='csr')
     rows, cols, vals = find(mat)
-    nd = [(rows[i],cols[i]) for i in np.where(vals>=args.min_sim)[0]]    
-    logger.info("Identifying near duplicates that have different sets of unique labels...")        
+    nd = [(rows[i],cols[i]) for i in np.where(vals>=args.min_sim)[0]]
+    logger.info("Identifying near duplicates that have different sets of unique labels...")
     ambig = set()
     for (i,j) in tqdm(nd):
         yi = copy(text_to_labels[mat_labels[i]])
@@ -151,12 +168,12 @@ def main(args):
     logger.info("  - Distribution of # new, unique labels received from neighbours")
     fd = Counter(len(x) for x in text_to_new_labels.values())
     for val, count in sorted(fd.items()):
-        pct = 100 * count / len(text_to_nbrs)        
+        pct = 100 * count / len(text_to_nbrs)
         logger.info(f"    - {val}: {count} ({pct:.2f}%)")
-        
+
     # Apply filters to texts
     texts = mat_labels[:]
-    assert len(texts) == nb_uniq_texts        
+    assert len(texts) == nb_uniq_texts
     if args.no_ne:
         logger.info(f"Discarding texts where the proportion of $NE$ tokens is greater than {MAX_NE_PROP}...")
         to_remove = []
@@ -175,20 +192,20 @@ def main(args):
         random.shuffle(singles)
         to_remove = singles[args.nb_singles:]
         for i in sorted(to_remove, reverse=True):
-            _ = texts.pop(i)        
+            _ = texts.pop(i)
         nb_removed = len(to_remove)
-        logger.info(f"Nb texts discarded: {nb_removed}")        
+        logger.info(f"Nb texts discarded: {nb_removed}")
 
     # Show distribution of number of labels per text
     label_count_fd = Counter((text_to_labels[text] != 0).sum() for text in texts)
     logger.info("Distribution of number of labels per text using ORIGINAL labels:")
     for k in sorted(label_count_fd.keys()):
         logger.info(f"  - {k}: {label_count_fd[k]}")
-    label_count_fd = Counter((text_to_labels_combined[text] != 0).sum() for text in texts)        
+    label_count_fd = Counter((text_to_labels_combined[text] != 0).sum() for text in texts)
     logger.info("Distribution of number of labels per text using COMBINED labels:")
     for k in sorted(label_count_fd.keys()):
         logger.info(f"  - {k}: {label_count_fd[k]}")
-        
+
     # Make random split of texts
     random.shuffle(texts)
     train_size = int(round(args.train_prop * len(texts)))
@@ -204,7 +221,7 @@ def main(args):
     random.shuffle(train_texts)
     random.shuffle(dev_texts)
     random.shuffle(test_texts)
-        
+
     # Write various single-label and multi-label datasets based on
     # this random split of texts
     for part_name, part_texts in [("train", train_texts),
@@ -213,7 +230,7 @@ def main(args):
         # Split texts for this part into ambiguous and unambiguous
         # (according to either the original or the combined labels)
         ambig_o = []
-        ambig_c = []        
+        ambig_c = []
         unambig_o = []
         unambig_c = []
         for text in part_texts:
@@ -228,10 +245,10 @@ def main(args):
         logger.info(f"Processing {part_name} set...")
         logger.info(f"  Nb texts: {len(part_texts)}/{len(texts)}")
         logger.info(f"  Nb texts that are ambiguous based on ORIGINAL labels: {len(ambig_o)}/{len(part_texts)}")
-        logger.info(f"  Nb texts that are unambiguous based on ORIGINAL labels: {len(unambig_o)}/{len(part_texts)}")        
+        logger.info(f"  Nb texts that are unambiguous based on ORIGINAL labels: {len(unambig_o)}/{len(part_texts)}")
         logger.info(f"  Nb texts that are ambiguous based on COMBINED labels: {len(ambig_c)}/{len(part_texts)}")
-        logger.info(f"  Nb texts that are unambiguous based on COMBINED labels: {len(unambig_c)}/{len(part_texts)}")        
-        
+        logger.info(f"  Nb texts that are unambiguous based on COMBINED labels: {len(unambig_c)}/{len(part_texts)}")
+
         # Write various datasets for this part
         for set_name, set_texts_o, set_texts_c in [("Ambig", ambig_o, ambig_c),
                                                    ("Unambig", unambig_o, unambig_c),
@@ -239,7 +256,7 @@ def main(args):
             for mode in ["Single", "Single-no-in-class-dups", "Multi"]:
                 subdir = os.path.join(args.dir_output, f"Original-labels/{set_name}/{mode}")
                 write_data(set_texts_o, text_to_labels, classes, subdir, part_name, mode.lower())
-                subdir = os.path.join(args.dir_output, f"Combined-labels/{set_name}/{mode}")                
+                subdir = os.path.join(args.dir_output, f"Combined-labels/{set_name}/{mode}")
                 write_data(set_texts_c, text_to_labels_combined, classes, subdir, part_name, mode.lower())
     return
 
@@ -247,11 +264,11 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=DOC)
     p.add_argument("path_texts", help="Path of text file containing texts")
     p.add_argument("path_labels", help="Path of text file containing labels")
-    p.add_argument("path_pickle", help="Path of pickle file containing similarity matrix and list of unique texts")    
+    p.add_argument("path_pickle", help="Path of pickle file containing similarity matrix and list of unique texts")
     p.add_argument("dir_output", help="Path of output directory")
     p.add_argument("--min_sim", "-m", type=float, default=0.9, help="minimum similarity for a text pair to be considered near duplicates")
     p.add_argument("--no_ne", "-e", action="store_true", help="Discard texts that contain mainly $NE$ tokens")
-    p.add_argument("--nb_singles", "-b", type=int, help="Nb single-label examples to keep")    
+    p.add_argument("--nb_singles", "-b", type=int, help="Nb single-label examples to keep")
     p.add_argument("--train_prop", "-t", type=float, default=0.8, help="Proportion of unique texts to put in training set")
     p.add_argument("--dev_prop", "-d", type=float, default=0.1, help="Proportion of unique texts to put in dev set")
     p.add_argument("--seed", "-s", help="Seed for RNG")

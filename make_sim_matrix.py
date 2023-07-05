@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse, pickle, logging, multiprocessing, random
 from copy import deepcopy
 from math import ceil
@@ -10,7 +27,7 @@ from Levenshtein import ratio
 from utils import load_lines
 
 DOC="""
-Compute pairwise similarity matrix for a set of texts. 
+Compute pairwise similarity matrix for a set of texts.
 """
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -28,7 +45,7 @@ def load_vectors(path, order=None, skip_head=True):
     - order: list of text IDs to read and add to matrix
     - skip_head: skip header?
     """
-    
+
     # Get number of texts and check order
     if order is None:
         nb_texts = sum(1 for line in open(path))
@@ -39,7 +56,7 @@ def load_vectors(path, order=None, skip_head=True):
 
     # Parse feature vectors
     dim = 0
-    vecs = [None] * len(text_id_to_row_id)    
+    vecs = [None] * len(text_id_to_row_id)
     with open(path) as f:
         # Skip header
         if skip_head:
@@ -56,7 +73,7 @@ def load_vectors(path, order=None, skip_head=True):
             for f in feats:
                 e = f.split(":")
                 assert len(e) == 2
-                feat = int(e[0]) 
+                feat = int(e[0])
                 val = int(e[1])
                 if feat > dim:
                     dim = feat
@@ -82,19 +99,19 @@ def compute_vector_sim(args):
     uniq_texts = sorted(utext_to_ids.keys(), key=lambda x:len(x))
     logger.info(f"Nb texts: {len(texts)}")
     logger.info(f"Nb unique texts: {len(uniq_texts)}")
-    dim = len(uniq_texts)    
+    dim = len(uniq_texts)
     if args.max_k_per_row:
         assert args.max_k_per_row < dim
     nb_comp = (dim ** 2 - dim) // 2
     logger.info(f"Nb pairs of texts to compair: {nb_comp}")
-    
+
     # Get feature vectors
     logger.info(f"Loading feature vectors from {args.vecs}")
     order = [utext_to_ids[k][0] for k in uniq_texts]
     vecs = load_vectors(args.vecs, order)
     logger.info("Converting matrix to CSR for more efficient operations...")
     vecs = vecs.tocsr()
-    logger.info(f"Shape of feature vectors: {vecs.shape}")    
+    logger.info(f"Shape of feature vectors: {vecs.shape}")
     avg_feats = vecs.nnz / len(texts)
     nb_cells = vecs.shape[0] * vecs.shape[1]
     sparsity = 100 * ((nb_cells-vecs.nnz)/nb_cells)
@@ -106,9 +123,9 @@ def compute_vector_sim(args):
             break
     logger.info(f"Nb non-zero elements: {vecs.nnz} (average={avg_feats:.1f}/text, sparsity={sparsity:.5f}%)")
     logger.info(f"Nb zero vectors: {nb_zero_vecs}")
-    
+
     # Compute similarities
-    logger.info(f"Initializing sparse sim matrix...")    
+    logger.info(f"Initializing sparse sim matrix...")
     matrix = lil_matrix((dim,dim), dtype='float')
     row_order = list(range(dim))
     random.shuffle(row_order)
@@ -146,22 +163,22 @@ def compute_edit_ratio(args):
     uniq_texts = list(set(texts))
     logger.info(f"Nb texts: {len(texts)}")
     logger.info(f"Nb unique texts: {len(uniq_texts)}")
-    dim = len(uniq_texts)    
+    dim = len(uniq_texts)
     nb_comp = (dim ** 2 - dim) // 2
     logger.info(f"Nb pairs of texts to compair (w/o pre-filtering by length diff): {nb_comp}")
 
     # Init matrix and set diag to 1
-    logger.info(f"Initializing sparse sim matrix and setting diagonal to 1...")    
+    logger.info(f"Initializing sparse sim matrix and setting diagonal to 1...")
     matrix = lil_matrix((dim,dim), dtype='float')
     for i in range(dim):
         matrix[i,i] = 1.0
 
     # Sort texts by length
-    uniq_texts = sorted(uniq_texts, key=lambda x:len(x))    
+    uniq_texts = sorted(uniq_texts, key=lambda x:len(x))
     lens = [len(x) for x in uniq_texts]
     row_order = list(range(len(uniq_texts)))
     random.shuffle(row_order)
-    
+
     # Compute Levenshtein similarities
     nb_cores = multiprocessing.cpu_count()
     nb_batches = int(ceil(len(uniq_texts) / args.batch_size))
@@ -170,10 +187,10 @@ def compute_edit_ratio(args):
     logger.info(f"Batch size: {args.batch_size} rows")
     logger.info(f"Nb batches: {nb_batches}")
     logger.info(f"Computing pairwise similarity scores...")
-    pbar = tqdm(total=nb_batches)    
+    pbar = tqdm(total=nb_batches)
     for batch_id in range(nb_batches):
         # Get batch of pairs of texts
-        batch_ixs = []        
+        batch_ixs = []
         rows = row_order[batch_id*args.batch_size:(batch_id+1)*args.batch_size]
         for row in rows:
             limit = ((2-args.cutoff) * lens[row])/args.cutoff
@@ -197,10 +214,10 @@ def compute_edit_ratio(args):
             with parallel_backend(backend=args.parallel_backend, n_jobs=nb_cores):
                 with Parallel() as parallel:
                     results = parallel(delayed(batched_sim)(*x) for x in inputs)
-                
+
             # Flatten results
             sims = [inner for outer in results for inner in outer]
-        
+
         # Put results in matrix
         for ((row,col), sim) in zip(batch_ixs, sims):
             if sim > 0:

@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse, pickle, logging, random
 from difflib import ndiff
 from tqdm import tqdm
@@ -22,7 +39,7 @@ def main(args):
         mat_labels = data["labels"]
     mat = mat.tocoo()
     logger.info(f"Type of matrix: {type(mat)}")
-    logger.info(f"Shape of matrix: {mat.shape}")    
+    logger.info(f"Shape of matrix: {mat.shape}")
     logger.info(f"Nb nnz: {mat.nnz}")
     logger.info(f"Loading texts from {args.path_texts} and labels from {args.path_labels}...")
     texts = load_lines(args.path_texts)
@@ -40,8 +57,8 @@ def main(args):
     logger.info(f"Identifying near duplicates with sim>={args.min_sim}...")
     mat = tril(mat, k=1)
     rows, cols, vals = find(mat)
-    nd = [(rows[i],cols[i],vals[i]) for i in np.where(vals>=args.min_sim)[0]]    
-    logger.info("Counting near duplicates that have different sets of unique labels...")        
+    nd = [(rows[i],cols[i],vals[i]) for i in np.where(vals>=args.min_sim)[0]]
+    logger.info("Counting near duplicates that have different sets of unique labels...")
     ambig = set()
     pbar = tqdm(total=len(nd))
     for (i,j,s) in nd:
@@ -58,12 +75,12 @@ def main(args):
     logger.info("Counting frequency of edits...")
     ambig = sorted(ambig, key=lambda x:x[2], reverse=True)
     edit2freq = {}
-    pretty_ambig = []    
+    pretty_ambig = []
     pbar = tqdm(total=len(ambig))
     delim = " " if args.ndiff_type == "token" else ""
     for ix,(i,j,sim) in enumerate(ambig):
         # Do diff and format edit blocks
-        ops = []        
+        ops = []
         prev_op = None
         block = []
         if args.ndiff_type == "char":
@@ -78,7 +95,7 @@ def main(args):
                 if len(block):
                     pretty_op = "=" if prev_op == " " else prev_op
                     pretty_block = delim.join(block)
-                    ops.append((pretty_op, pretty_block))                    
+                    ops.append((pretty_op, pretty_block))
                 block = []
                 prev_op = op
             block.append(x[2:])
@@ -87,7 +104,7 @@ def main(args):
             pretty_op = "=" if prev_op == " " else prev_op
             pretty_block = delim.join(block)
             ops.append((pretty_op, pretty_block))
-            
+
         # Store message for printing
         msg = f"************* Example {ix+1} ****************\n"
         msg += f"- Sim={sim:.5f}\n"
@@ -95,9 +112,9 @@ def main(args):
         for (symbol, string) in ops:
             msg += f"  {symbol} [{string}]\n"
         msg += f"- Text {i}: {mat_labels[i]}\n"
-        msg += f"- Labels of text {i}: {text_to_labels[mat_labels[i]]}\n"        
-        msg += f"- Text {j}: {mat_labels[j]}\n"            
-        msg += f"- Labels of text {j}: {text_to_labels[mat_labels[j]]}\n"            
+        msg += f"- Labels of text {i}: {text_to_labels[mat_labels[i]]}\n"
+        msg += f"- Text {j}: {mat_labels[j]}\n"
+        msg += f"- Labels of text {j}: {text_to_labels[mat_labels[j]]}\n"
         pretty_ambig.append(msg)
 
         # Concatenate edit ops, and count them
@@ -111,7 +128,7 @@ def main(args):
             else:
                 block.append(symbol)
                 block.append(string)
-        if len(block): 
+        if len(block):
             edits.append(tuple(block))
         for edit in edits:
             if edit not in edit2freq:
@@ -131,7 +148,7 @@ def main(args):
             symbol = edit[i]
             string = edit[i+1]
             logger.info(f"    {symbol} [{string}]")
-    
+
     # Write ambiguous near duplicates
     if args.write_to:
         if args.seed:
@@ -158,7 +175,7 @@ if __name__ == "__main__":
     p.add_argument("--write_to", "-w", type=str, help="Optional path of file to write ambiguous near duplicates to.")
     p.add_argument("--ndiff_type", "-n", choices=["char", "token"], default="char", help="Type of ndiff used to highligh differences (if --write_to is specified)")
     p.add_argument("--ndiff_sample_size", "-i", type=int, help="Number of ndiffs to sample (if --write_to is specified)")
-    p.add_argument("--seed", "-s", help="Seed for RNG  (used for sampling ndiff outputs")    
+    p.add_argument("--seed", "-s", help="Seed for RNG  (used for sampling ndiff outputs")
     args = p.parse_args()
     assert args.min_sim >= 0
     assert args.min_sim < 1

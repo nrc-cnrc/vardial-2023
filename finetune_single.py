@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse
 from shutil import copyfile
 import numpy as np
@@ -34,13 +51,13 @@ def main(args):
                                     "single")
     dev_data = load_labelled_data(args.path_dev_texts,
                                   args.path_dev_labels,
-                                  "single")                                  
+                                  "single")
 
     label_list = CLASS_NAMES
-    label2id = {x:i for i,x in enumerate(label_list)}    
-    
+    label2id = {x:i for i,x in enumerate(label_list)}
+
     # Make model
-    cache_dir = os.getenv("TRANSFORMERS_CACHE")    
+    cache_dir = os.getenv("TRANSFORMERS_CACHE")
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME,
                                                                num_labels=len(label2id),
                                                                cache_dir=cache_dir)
@@ -60,7 +77,7 @@ def main(args):
     print("Model parameters:")
     for name, param in model.named_parameters():
         print(f"- {name} (requires_grad={param.requires_grad})")
-        
+
     # Make tokenizer. Try using local cached version. This does not
     # seem to work unless the local_files_only flag is set to True.
     try:
@@ -73,7 +90,7 @@ def main(args):
                                                   cache_dir=cache_dir,
                                                   config=model.config)
     path_checkpoint = os.path.join(args.dir_out, "checkpoint")
-    tokenizer.save_pretrained(os.path.join(path_checkpoint, "tokenizer"))        
+    tokenizer.save_pretrained(os.path.join(path_checkpoint, "tokenizer"))
 
     # Tokenize data, format for pytorch native training loop. Note: I
     # only use a single CPU process because using more than one messes
@@ -95,7 +112,7 @@ def main(args):
     )
     train_loader = DataLoader(train_data, shuffle=True, batch_size=args.batch_size, collate_fn=collator)
     dev_loader = DataLoader(dev_data, shuffle=False, batch_size=args.batch_size, collate_fn=collator)
-    
+
     # Get optimizer
     optimizer = AdamW(model.parameters(), lr=5e-5)
     nb_steps = args.epochs * len(train_loader)
@@ -110,7 +127,7 @@ def main(args):
 
     # Set up loss function
     loss_fct = CrossEntropyLoss(reduction="mean")
-    
+
     # Train
     path_train_log = os.path.join(args.dir_out, "train.log")
     with open(path_train_log, 'w') as f:
@@ -131,7 +148,7 @@ def main(args):
                 outputs = model(**batch)
                 logits = outputs.logits
                 model_loss = outputs.loss
-                weighted_loss = loss_fct(logits, batch["labels"])                
+                weighted_loss = loss_fct(logits, batch["labels"])
                 weighted_loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -141,10 +158,10 @@ def main(args):
             avg_train_loss = average_weighted_averages(train_losses, train_batch_sizes)
         else:
             avg_train_loss = "N/A"
-            
+
         # Save checkpoint
         model.save_pretrained(os.path.join(path_checkpoint, "latest_model"))
-        
+
         # Validate
         model.eval()
         valid_progress.reset()
@@ -159,7 +176,7 @@ def main(args):
                 logits = outputs.logits
                 model_loss = outputs.loss
                 weighted_loss = loss_fct(logits, batch["labels"])
-            all_labels.append(batch["labels"].cpu().detach())                
+            all_labels.append(batch["labels"].cpu().detach())
             all_logits.append(logits.cpu().detach())
             valid_losses.append(weighted_loss.item())
             valid_batch_sizes.append(len(batch["input_ids"]))
@@ -171,7 +188,7 @@ def main(args):
         write_preds(all_logits, label_list, path_dev_preds, "single")
 
         # Log losses and scores
-        avg_valid_loss = average_weighted_averages(valid_losses, valid_batch_sizes)        
+        avg_valid_loss = average_weighted_averages(valid_losses, valid_batch_sizes)
         all_preds = torch.argmax(all_logits, dim=-1).numpy()
         all_labels = torch.hstack(all_labels).numpy()
         scores = f1_score(all_labels, all_preds, labels=range(len(label_list)), average=None, zero_division="warn")
@@ -192,7 +209,7 @@ def main(args):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=DOC)
     p.add_argument("path_train_texts", help="Path of text file containing training texts (one per line)")
-    p.add_argument("path_train_labels", help="Path of text file containing training labels (one per line)")    
+    p.add_argument("path_train_labels", help="Path of text file containing training labels (one per line)")
     p.add_argument("path_dev_texts", help="Path of text file containing dev texts (one per line)")
     p.add_argument("path_dev_labels", help="Path of text file containing dev labels (one per line)")
     p.add_argument("dir_out", help="Path of output directory")

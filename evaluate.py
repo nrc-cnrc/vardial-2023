@@ -1,3 +1,20 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import argparse
 from sklearn.metrics import f1_score
 from utils import load_lines, CLASS_NAMES
@@ -31,16 +48,16 @@ def main(args):
         assert args.problem_type == "multi", "problem_type must be 'multi' (some examples have more than one gold label)"
 
     # Compute evaluation metrics
-    print("Computing evaluation metrics...")    
+    print("Computing evaluation metrics...")
     if args.problem_type == "multi":
         gold_multi = [[1 if x in labels else 0 for x in CLASS_NAMES] for labels in gold]
-        pred_multi = [[1 if x in labels else 0 for x in CLASS_NAMES] for labels in pred]        
+        pred_multi = [[1 if x in labels else 0 for x in CLASS_NAMES] for labels in pred]
         scores = f1_score(gold_multi, pred_multi, average=None, zero_division="warn")
         weighted = f1_score(gold_multi, pred_multi, average="weighted", zero_division="warn")
     else:
-        label2id = {x:i for i,x in enumerate(CLASS_NAMES)}        
+        label2id = {x:i for i,x in enumerate(CLASS_NAMES)}
         gold_ids = [label2id[x[0]] for x in gold]
-        pred_ids = [label2id[x[0]] for x in pred]        
+        pred_ids = [label2id[x[0]] for x in pred]
         scores = f1_score(gold_ids, pred_ids, labels=range(len(label2id)), average=None, zero_division="warn")
         weighted = f1_score(gold_multi, pred_multi, average="weighted", zero_division="warn")
 

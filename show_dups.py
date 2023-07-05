@@ -1,8 +1,25 @@
+
+# Copyright (C) 2023 National Research Council Canada.
+#
+# This file is part of vardial-2023.
+#
+# vardial-2023 is free software: you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# vardial-2023 is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# vardial-2023. If not, see https://www.gnu.org/licenses/.
+
 import os, argparse
 from utils import load_lines
 
-DOC=""" 
-Show examples of texts that have duplicates in muliple classes. 
+DOC="""
+Show examples of texts that have duplicates in muliple classes.
 """
 
 MIN_UNIQ_CLASSES = 2
@@ -33,4 +50,3 @@ if __name__ == "__main__":
     p.add_argument("path_labels", help="Path of text file containing labels")
     args = p.parse_args()
     main(args)
-
